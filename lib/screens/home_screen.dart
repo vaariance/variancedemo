@@ -1,6 +1,20 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:developer';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:variance_dart/utils.dart';
+import 'package:variance_dart/variance.dart';
+import 'package:variancedemo/providers/wallet_provider.dart';
 import 'package:variancedemo/variance_colors.dart';
+import 'dart:ui' as ui;
+
+import 'package:web3dart/web3dart.dart';
 
 class WalletHome extends StatefulWidget {
   const WalletHome({super.key});
@@ -10,11 +24,13 @@ class WalletHome extends StatefulWidget {
 }
 
 class _WalletHomeState extends State<WalletHome> {
+  final _formKey = GlobalKey<FormState>();
+  TextEditingController amountController = TextEditingController();
+  TextEditingController addressController = TextEditingController();
   final List<CryptoTransaction> transactions = [
-    CryptoTransaction(name: 'Bitcoin', amount: 0.05, date: '2022-01-01'),
+    CryptoTransaction(name: 'Matic', amount: 0.05, date: '2022-01-01'),
     CryptoTransaction(name: 'Ethereum', amount: 1.2, date: '2022-02-15'),
-    CryptoTransaction(name: 'Litecoin', amount: 5.0, date: '2022-03-10'),
-    // Add more transactions as needed
+    CryptoTransaction(name: 'Near', amount: 5.0, date: '2022-03-10'),
   ];
 
   @override
@@ -28,96 +44,164 @@ class _WalletHomeState extends State<WalletHome> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const WalletBalance(),
-              18.verticalSpace,
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 45.h,
-                      width: 180.w,
-                      child: TextButton(
-                          style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              backgroundColor: VarianceColors.white),
-                          onPressed: () {},
-                          child: const Text('Send')),
-                    ),
-                  ),
-                  20.horizontalSpace,
-                  Expanded(
-                    child: SizedBox(
-                      height: 45.h,
-                      width: 180,
-                      child: TextButton(
-                          style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              backgroundColor: VarianceColors.secondary),
-                          onPressed: () {},
-                          child: const Text('Receive')),
-                    ),
-                  )
-                ],
+              110.verticalSpace,
+              AddressBar(
+                hintText: 'Eth Address',
+                textEditingController: addressController,
               ),
               18.verticalSpace,
-              // Container(
-              //   child: ListView.builder(
-              //     itemCount: transactions.length,
-              //     itemBuilder: (context, index) {
-              //       final transaction = transactions[index];
-              //       return ListTile(
-              //         title: Text(transaction.name),
-              //         subtitle: Text('Amount: ${transaction.amount} BTC'),
-              //         trailing: Text('Date: ${transaction.date}'),
-              //         // You can customize the ListTile further as needed
-              //       );
-              //     },
-              //   ),
-              // ),
+              TextFormField(
+                  style: TextStyle(
+                      fontSize: 51.sp,
+                      fontWeight: FontWeight.w600,
+                      color: VarianceColors.secondary),
+                  key: _formKey,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a value';
+                    } else if (int.parse(value) > 100) {
+                      return 'Value should be less than or equal to 100';
+                    }
+                    return null;
+                  },
+                  onChanged: (value) {
+                    if (value.isEmpty) {
+                      return;
+                    }
+
+                    // if (double.parse(value) >
+                    //     double.parse(selectedTokenBalance.toString())) {
+                    //   scaffoldMessengerKey.currentState?.showSnackBar(
+                    //     const SnackBar(
+                    //       backgroundColor: Colors.white,
+                    //       content: Text(
+                    //         'Insufficient balance',
+                    //         style: TextStyle(color: Colors.red),
+                    //       ),
+                    //     ),
+                    //   );
+                    // }
+                  },
+                  textAlign: TextAlign.center,
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    focusColor: Colors.white,
+                    fillColor: Colors.white,
+                    border: InputBorder.none,
+                    hintText: '0.0',
+                    hintStyle: TextStyle(
+                        fontSize: 51, color: VarianceColors.secondary),
+                  ),
+                  cursorColor: VarianceColors.secondary,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\.?\d*(?<!\.)\.?\d*'),
+                    )
+                  ]),
+              SizedBox(
+                height: 58.h,
+                width: double.infinity,
+                child: TextButton(
+                    style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        backgroundColor: VarianceColors.white),
+                    onPressed: () {
+                      context.read<WalletProvider>().sendTransaction(
+                          addressController.text, amountController.text);
+                    },
+                    child: const Text('Send')),
+              ),
             ],
           ),
+        ),
+        floatingActionButton: FloatingActionButton.large(
+          child: const Icon(Icons.qr_code_2_sharp),
+          onPressed: () {
+            showModalBottomSheetContent(context);
+          },
         ),
       ),
     );
   }
 }
 
-class WalletBalance extends StatelessWidget {
+String address = '';
+
+class WalletBalance extends StatefulWidget {
   const WalletBalance({super.key});
 
   @override
+  State<WalletBalance> createState() => _WalletBalanceState();
+}
+
+class _WalletBalanceState extends State<WalletBalance> {
+  Uint256 balance = Uint256.zero;
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    final wallet = context.select(
+      (WalletProvider provider) => provider.wallet,
+    );
+
+    if (wallet.address != null) {
+      address = wallet.address!.hex;
+    } else {
+      address = '0x0000000000000000000000000000000000000000';
+    }
+
+    Future<void> getBalance() async {
+      final ether = await wallet.balance;
+      setState(() {
+        balance = Uint256.fromWei(ether);
+      });
+      //print("${balance.toUnit(18)}");
+    }
+
+    getBalance();
+    return Consumer<WalletProvider>(
+      builder: (context, value, child) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Total Balance',
-              style:
-                  TextStyle(color: VarianceColors.secondary, fontSize: 14.sp),
+            Row(
+              children: [
+                Text(
+                  'Total Balance',
+                  style: TextStyle(
+                      color: VarianceColors.secondary, fontSize: 14.sp),
+                ),
+                10.horizontalSpace,
+                const Image(
+                  image: AssetImage(
+                    'assets/images/down-arrow.png',
+                  ),
+                  height: 10,
+                  width: 10,
+                  color: VarianceColors.secondary,
+                ),
+                const Spacer(),
+                Expanded(
+                  child: Text(
+                    address,
+                    style: const TextStyle(
+                        color: VarianceColors.secondary,
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                )
+              ],
             ),
-            10.horizontalSpace,
-            const Image(
-              image: AssetImage(
-                'assets/images/down-arrow.png',
-              ),
-              height: 10,
-              width: 10,
-              color: VarianceColors.secondary,
-            )
+            18.verticalSpace,
+            Text(
+              '${balance.toUnit(18)} ETH',
+              style: TextStyle(color: Colors.white, fontSize: 24.sp),
+            ),
+            18.verticalSpace,
           ],
-        ),
-        18.verticalSpace,
-        Text(
-          'Eth 0.00',
-          style: TextStyle(color: Colors.white, fontSize: 24.sp),
-        ),
-        18.verticalSpace,
-        Text(
-          '0.00 USD',
-          style: TextStyle(color: Colors.white, fontSize: 14.sp),
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -132,4 +216,197 @@ class CryptoTransaction {
     required this.amount,
     required this.date,
   });
+}
+
+class AddressBar extends StatefulWidget {
+  final String hintText;
+  final TextEditingController? textEditingController;
+  final TextStyle? hintTextStyle;
+
+  // Add an optional parameter for the initial value
+  final String initialValue;
+
+  const AddressBar({
+    required this.hintText,
+    this.hintTextStyle,
+    this.textEditingController,
+    this.initialValue = "0.0", // Provide a default initial value
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  State<AddressBar> createState() => _AddressBarState();
+}
+
+class _AddressBarState extends State<AddressBar> {
+  bool pwdVisibility = false;
+  final formKey = GlobalKey<FormState>();
+  late final TextEditingController textEditingController;
+  @override
+  void initState() {
+    super.initState();
+    // Initialize the TextEditingController with the initial value
+    textEditingController = widget.textEditingController ??
+        TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      cursorColor: VarianceColors.primary,
+      controller: widget.textEditingController,
+      textAlign: TextAlign.center,
+      decoration: InputDecoration(
+        fillColor: VarianceColors.secondary,
+        filled: true,
+        hintText: widget.hintText,
+        hintStyle: widget.hintTextStyle,
+        enabledBorder: OutlineInputBorder(
+          borderSide: const BorderSide(
+            color: Colors.white,
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(
+              color: Colors.white,
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(10)),
+      ),
+      validator: (val) {
+        if (val!.isEmpty) {
+          return 'Required';
+        }
+        return null;
+      },
+    );
+  }
+}
+
+String message = address;
+final FutureBuilder<ui.Image> qrFutureBuilder = FutureBuilder<ui.Image>(
+  future: _loadOverlayImage(),
+  builder: (BuildContext ctx, AsyncSnapshot<ui.Image> snapshot) {
+    const double size = 280.0;
+    if (!snapshot.hasData) {
+      return const SizedBox(width: size, height: size);
+    }
+    return CustomPaint(
+      size: const Size.square(size),
+      painter: QrPainter(
+        data: message.toString(),
+        version: QrVersions.auto,
+        eyeStyle: const QrEyeStyle(
+          eyeShape: QrEyeShape.square,
+          color: Color(0xff000000),
+        ),
+        dataModuleStyle: const QrDataModuleStyle(
+          dataModuleShape: QrDataModuleShape.circle,
+          color: Color(0xff000000),
+        ),
+        // size: 320.0,
+        embeddedImage: snapshot.data,
+        embeddedImageStyle: const QrEmbeddedImageStyle(
+          size: Size.square(60),
+        ),
+      ),
+    );
+  },
+);
+Future<ui.Image> _loadOverlayImage() async {
+  final Completer<ui.Image> completer = Completer<ui.Image>();
+  final ByteData byteData = await rootBundle.load('assets/images/ethereum.png');
+  ui.decodeImageFromList(byteData.buffer.asUint8List(), completer.complete);
+  return completer.future;
+}
+
+showModalBottomSheetContent(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    builder: (BuildContext context) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.89,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(10.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: qrFutureBuilder, // Replace with your content
+                ),
+              ),
+              const SizedBox(height: 50),
+              Container(
+                width: 280,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                margin: const EdgeInsets.symmetric(horizontal: 15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey.shade400),
+                ),
+                child: Row(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Your Ethereum address',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            color: const Color(0xff32353E).withOpacity(0.5),
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        SizedBox(
+                          width: 280,
+                          child: Text(
+                            message,
+                            style: const TextStyle(
+                              color: Color(0xff32353E),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(
+                            text: message,
+                          ));
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: const Color(0xff32353E),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'copy',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }

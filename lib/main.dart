@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:variancedemo/providers/wallet_provider.dart';
 import 'package:variancedemo/screens/create_account.dart';
 import 'package:variancedemo/screens/home_screen.dart';
 
+final globalScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => WalletProvider()),
+    ],
+    child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
