@@ -18,10 +18,12 @@ dependencies:
   google_fonts: ^6.1.0
   flutter_screenutil: ^5.9.0
   qr_flutter: ^4.1.0
-  variance_dart:
-    git:
-      url: "https://github.com/vaariance/vaariance-dart.git"
   web3dart: ^2.7.2
+  shared_preferences: ^2.2.2
+  
+  path_provider: ^2.1.1
+  variance_dart:
+    path: /Users/godwinekainu/variance-dart
 
 dev_dependencies:
   flutter_test:

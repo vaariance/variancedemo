@@ -68,19 +68,6 @@ class _WalletHomeState extends State<WalletHome> {
                     if (value.isEmpty) {
                       return;
                     }
-
-                    // if (double.parse(value) >
-                    //     double.parse(selectedTokenBalance.toString())) {
-                    //   scaffoldMessengerKey.currentState?.showSnackBar(
-                    //     const SnackBar(
-                    //       backgroundColor: Colors.white,
-                    //       content: Text(
-                    //         'Insufficient balance',
-                    //         style: TextStyle(color: Colors.red),
-                    //       ),
-                    //     ),
-                    //   );
-                    // }
                   },
                   textAlign: TextAlign.center,
                   controller: amountController,
@@ -109,6 +96,8 @@ class _WalletHomeState extends State<WalletHome> {
                             borderRadius: BorderRadius.circular(10)),
                         backgroundColor: VarianceColors.white),
                     onPressed: () {
+                      log(amountController.text);
+                      log(addressController.text);
                       context.read<WalletProvider>().sendTransaction(
                           addressController.text, amountController.text);
                     },

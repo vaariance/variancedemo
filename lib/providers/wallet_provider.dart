@@ -22,8 +22,8 @@ class WalletProvider extends ChangeNotifier {
           "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"),
       accountFactory: w3d.EthereumAddress.fromHex(
           '0x690832791538Ff4DD15407817B0DAc54456631bc'))
-    ..bundlerUrl = "https://1f88-41-190-3-151.ngrok-free.app/rpc"
-    ..ethRpcUrl = "https://74ea-41-190-3-151.ngrok-free.app";
+    ..bundlerUrl = "https://2f4d-105-113-29-171.ngrok-free.app/rpc"
+    ..ethRpcUrl = "https://444a-105-113-29-171.ngrok-free.app";
 
   PassKeySigner? get passKey => _passKey;
   Chain get chain => _chain;
@@ -35,7 +35,7 @@ class WalletProvider extends ChangeNotifier {
   WalletProvider() {
     _passKey = PassKeySigner("webauthn.io", "webauthn", "https://webauthn.io");
     _provider = RPCProvider(chain.bundlerUrl!);
-    _wallet = SmartWallet.init(
+    _wallet = SmartWallet(
         chain: chain,
         signer: _passKey!,
         bundler: BundlerProvider(chain, RPCProvider(chain.bundlerUrl!)));
@@ -54,11 +54,11 @@ class WalletProvider extends ChangeNotifier {
     }
   }
 
-  Future sendTransaction(String recipient, String amount) async {
+  Future<void> sendTransaction(String recipient, String amount) async {
     final amtToDb = double.parse(amount);
     final dbToWei = BigInt.from(amtToDb * math.pow(10, 18));
 
-    await wallet.send(EthereumAddress.fromHex(recipient),
-        w3d.EtherAmount.fromBigInt(w3d.EtherUnit.wei, dbToWei));
+    final etherAmount = w3d.EtherAmount.fromBigInt(w3d.EtherUnit.wei, dbToWei);
+    await wallet.send(EthereumAddress.fromHex(recipient), etherAmount);
   }
 }
