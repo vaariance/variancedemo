@@ -840,9 +840,11 @@ packages:
   variance_dart:
     dependency: "direct main"
     description:
-      path: "/Users/godwinekainu/variance-dart"
-      relative: false
-    source: path
+      path: "."
+      ref: HEAD
+      resolved-ref: "0c00dbd945a5169fab6cf79c48c406a04beb1482"
+      url: "https://github.com/vaariance/variance-dart"
+    source: git
     version: "0.0.4"
   vector_math:
     dependency: transitive

@@ -178,7 +178,7 @@ class _WalletBalanceState extends State<WalletBalance> {
             ),
             18.verticalSpace,
             Text(
-              '${balance.toUnit(18)} ETH',
+              '${balance.fromUnit(18)} ETH',
               style: TextStyle(color: Colors.white, fontSize: 24.sp),
             ),
             18.verticalSpace,

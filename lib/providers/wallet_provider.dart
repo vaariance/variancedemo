@@ -46,7 +46,8 @@ class WalletProvider extends ChangeNotifier {
     _keyPair = await signer.register(name, requiresUserVerification!);
 
     try {
-      final salt = Uint256.fromHex(hexlify(utf8.encode(name)));
+      final salt = Uint256.fromHex(
+          hexlify(w3d.keccak256(Uint8List.fromList(utf8.encode(name)))));
       await _wallet.createSimplePasskeyAccount(_keyPair!, salt);
       log("wallet created ${_wallet.address?.hex} ");
     } catch (e) {

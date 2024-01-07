@@ -1,12 +1,11 @@
 name: variancedemo
 description: A new Flutter project.
 
-
-publish_to: 'none' 
+publish_to: "none"
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.1.5 <4.0.0'
+  sdk: ">=3.1.5 <4.0.0"
 
 dependencies:
   flutter:
@@ -20,10 +19,10 @@ dependencies:
   qr_flutter: ^4.1.0
   web3dart: ^2.7.2
   shared_preferences: ^2.2.2
-  
   path_provider: ^2.1.1
   variance_dart:
-    path: /Users/godwinekainu/variance-dart
+    git:
+      url: https://github.com/vaariance/variance-dart
 
 dev_dependencies:
   flutter_test:
@@ -35,31 +34,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-  
-dependency_overrides: 
+
+dependency_overrides:
   stream_channel: ^2.1.2
-  
-  
-
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
