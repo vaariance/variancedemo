@@ -3,51 +3,64 @@ import 'dart:developer';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:variance_dart/interfaces.dart';
 import 'package:variance_dart/utils.dart';
 import 'package:variance_dart/variance.dart';
 import 'package:web3dart/credentials.dart';
 import 'package:web3dart/web3dart.dart' as w3d;
+import 'package:web3dart/crypto.dart' as w3d;
 
 ///
 class WalletProvider extends ChangeNotifier {
-  PassKeySigner? _passKey;
-  late SmartWallet _wallet;
+  final Chain _chain;
+
   PassKeyPair? _keyPair;
-  late RPCProvider _provider;
-  late Uint256 _salt;
-  final Chain _chain = Chain(
-      chainId: 1337,
-      explorer: "http//localhost:8545",
-      entrypoint: w3d.EthereumAddress.fromHex(
-          "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"),
-      accountFactory: w3d.EthereumAddress.fromHex(
-          '0x690832791538Ff4DD15407817B0DAc54456631bc'))
-    ..bundlerUrl = "https://2f4d-105-113-29-171.ngrok-free.app/rpc"
-    ..ethRpcUrl = "https://444a-105-113-29-171.ngrok-free.app";
 
-  PassKeySigner? get passKey => _passKey;
-  Chain get chain => _chain;
+  late SmartWallet _wallet;
+
   SmartWallet get wallet => _wallet;
-  PassKeyPair? get keyPair => _keyPair;
-  Uint256 get salt => _salt;
-  RPCProvider get rpcProvider => _provider;
 
-  WalletProvider() {
-    _passKey = PassKeySigner("webauthn.io", "webauthn", "https://webauthn.io");
-    _provider = RPCProvider(chain.bundlerUrl!);
+  WalletProvider()
+      : _chain = Chain(
+            chainId: 31337,
+            explorer: "http//localhost:8545",
+            entrypoint: w3d.EthereumAddress.fromHex(
+                "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"),
+            accountFactory: w3d.EthereumAddress.fromHex(
+                '0x218d850562cec77dd5DEC87b7FEE18824bC0f93C'))
+          ..bundlerUrl = "https://ad7a-105-112-117-191.ngrok-free.app/rpc"
+          ..ethRpcUrl = "https://ccf0-105-112-117-191.ngrok-free.app";
+
+  void _createWalletWithSigner(MultiSignerInterface signer) {
     _wallet = SmartWallet(
-        chain: chain,
-        signer: _passKey!,
-        bundler: BundlerProvider(chain, RPCProvider(chain.bundlerUrl!)));
+        chain: _chain,
+        signer: signer,
+        bundler: BundlerProvider(_chain, RPCProvider(_chain.bundlerUrl!)));
   }
 
   Future registerWithPassKey(String name,
       {bool? requiresUserVerification}) async {
-    _keyPair = await _passKey!.register(name, requiresUserVerification!);
+    final signer =
+        PassKeySigner("webauthn.io", "webauthn", "https://webauthn.io");
+    _createWalletWithSigner(signer);
+    _keyPair = await signer.register(name, requiresUserVerification!);
 
     try {
-      _salt = Uint256.fromHex(hexlify(utf8.encode(name)));
-      await _wallet.createSimplePasskeyAccount(_keyPair!, _salt);
+      final salt = Uint256.fromHex(hexlify(utf8.encode(name)));
+      await _wallet.createSimplePasskeyAccount(_keyPair!, salt);
+      log("wallet created ${_wallet.address?.hex} ");
+    } catch (e) {
+      log("something happened: $e");
+    }
+  }
+
+  Future registerWithHDWallet() async {
+    final signer = HDWalletSigner.createWallet();
+    _createWalletWithSigner(signer);
+    try {
+      final salt = Uint256.fromHex(hexlify(w3d.keccak256(
+          Uint8List.fromList(utf8.encode(signer.zerothAddress.hexNo0x)))));
+      await _wallet.createSimpleAccount(salt, index: 0);
       log("wallet created ${_wallet.address?.hex} ");
     } catch (e) {
       log("something happened: $e");
@@ -57,7 +70,6 @@ class WalletProvider extends ChangeNotifier {
   Future<void> sendTransaction(String recipient, String amount) async {
     final amtToDb = double.parse(amount);
     final dbToWei = BigInt.from(amtToDb * math.pow(10, 18));
-
     final etherAmount = w3d.EtherAmount.fromBigInt(w3d.EtherUnit.wei, dbToWei);
     await wallet.send(EthereumAddress.fromHex(recipient), etherAmount);
   }

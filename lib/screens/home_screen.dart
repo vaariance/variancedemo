@@ -1,20 +1,15 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:developer';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:variance_dart/utils.dart';
 import 'package:variance_dart/variance.dart';
 import 'package:variancedemo/providers/wallet_provider.dart';
 import 'package:variancedemo/variance_colors.dart';
 import 'dart:ui' as ui;
-
-import 'package:web3dart/web3dart.dart';
 
 class WalletHome extends StatefulWidget {
   const WalletHome({super.key});
@@ -27,11 +22,6 @@ class _WalletHomeState extends State<WalletHome> {
   final _formKey = GlobalKey<FormState>();
   TextEditingController amountController = TextEditingController();
   TextEditingController addressController = TextEditingController();
-  final List<CryptoTransaction> transactions = [
-    CryptoTransaction(name: 'Matic', amount: 0.05, date: '2022-01-01'),
-    CryptoTransaction(name: 'Ethereum', amount: 1.2, date: '2022-02-15'),
-    CryptoTransaction(name: 'Near', amount: 5.0, date: '2022-03-10'),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -134,6 +124,9 @@ class _WalletBalanceState extends State<WalletBalance> {
     final wallet = context.select(
       (WalletProvider provider) => provider.wallet,
     );
+    // final hdWallet = context.select(
+    //   (WalletProvider provider) => provider.hdWalletSigner,
+    // );
 
     if (wallet.address != null) {
       address = wallet.address!.hex;
@@ -146,8 +139,8 @@ class _WalletBalanceState extends State<WalletBalance> {
       setState(() {
         balance = Uint256.fromWei(ether);
       });
-      //print("${balance.toUnit(18)}");
     }
+    //if the wallet is created with a passkey
 
     getBalance();
     return Consumer<WalletProvider>(
@@ -176,8 +169,9 @@ class _WalletBalanceState extends State<WalletBalance> {
                   child: Text(
                     address,
                     style: const TextStyle(
-                        color: VarianceColors.secondary,
-                        overflow: TextOverflow.ellipsis),
+                      color: VarianceColors.secondary,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 )
               ],

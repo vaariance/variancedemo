@@ -7,13 +7,12 @@ import 'package:variancedemo/screens/create_account.dart';
 import 'package:variancedemo/screens/home_screen.dart';
 
 final globalScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(MultiProvider(
-    providers: [
-      ChangeNotifierProvider(create: (_) => WalletProvider()),
-    ],
-    child: const MyApp()));
+  runApp(MultiProvider(providers: [
+    ChangeNotifierProvider(create: (_) => WalletProvider()),
+  ], child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {

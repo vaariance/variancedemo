@@ -110,7 +110,16 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   Container(
                     margin: const EdgeInsets.only(left: 30),
                     child: TextButton.icon(
-                        onPressed: () {},
+                        onPressed: () {
+                          try {
+                            context
+                                .read<WalletProvider>()
+                                .registerWithHDWallet();
+                            Navigator.pushNamed(context, '/home');
+                          } catch (e) {
+                            'Something went wrong: $e';
+                          }
+                        },
                         icon: const Icon(Icons.key),
                         label: const Text('Generate Account with HD Key')),
                   )
