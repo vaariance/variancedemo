@@ -31,11 +31,11 @@ class WalletProvider extends ChangeNotifier {
   WalletProvider()
       : _chain = Chains.getChain(Network.sepolia)
           ..accountFactory = Constants
-              .safeProxyFactoryAddress // sets the factory for safe accounts
+              .simpleAccountFactoryAddressv06 // sets the factory for safe accounts
           ..bundlerUrl = pimlicoUrl
           ..paymasterUrl = pimlicoUrl;
 
-  Future<void> createSafeSmartWallet() async {
+  Future<void> createSmartWallet() async {
     // creates an EOA wallet as a signer.
     final signer = EOAWallet.createWallet();
 
@@ -45,8 +45,8 @@ class WalletProvider extends ChangeNotifier {
     // a salt for deterministic deployment
     final salt = Uint256.zero;
 
-    // creates a determinsitic safe smart wallet
-    wallet = await walletFactory.createSafeAccount(salt);
+    // creates a determinsitic simple smart wallet
+    wallet = await walletFactory.createSimpleAccount(salt);
     log("safe wallet created ${wallet?.address.hex} ");
   }
 
