@@ -19,9 +19,11 @@ final EthereumAddress erc20 =
 final EthereumAddress deployer =
     EthereumAddress.fromHex("0x218F6Bbc32Ef28F547A67c70AbCF8c2ea3b468BA");
 
-// bundler/paymaster rpc url
-const String pimlicoUrl =
-    "https://api.pimlico.io/v2/11155111/rpc?apikey=$apikey";
+// bundler rpc url
+const String bundlerUrl = "https://base-sepolia.g.alchemy.com/v2/$apikey";
+
+// paymaster rpc url
+const String paymasterUrl = "https://paymaster.optimism.io/v1/84532/rpc";
 
 class WalletProvider extends ChangeNotifier {
   final Chain _chain; // chain configurations
@@ -29,11 +31,11 @@ class WalletProvider extends ChangeNotifier {
   SmartWallet? wallet;
 
   WalletProvider()
-      : _chain = Chains.getChain(Network.sepolia)
+      : _chain = Chains.getChain(Network.baseTestnet)
           ..accountFactory = Constants
               .simpleAccountFactoryAddressv06 // sets the factory for safe accounts
-          ..bundlerUrl = pimlicoUrl
-          ..paymasterUrl = pimlicoUrl;
+          ..bundlerUrl = bundlerUrl
+          ..paymasterUrl = paymasterUrl;
 
   Future<void> createSmartWallet() async {
     // creates an EOA wallet as a signer.
@@ -47,7 +49,8 @@ class WalletProvider extends ChangeNotifier {
 
     // creates a determinsitic simple smart wallet
     wallet = await walletFactory.createSimpleAccount(salt);
-    log("safe wallet created ${wallet?.address.hex} ");
+
+    log("Smart wallet created ${wallet?.address.hex} ");
   }
 
   Future<void> mintNFt() async {
